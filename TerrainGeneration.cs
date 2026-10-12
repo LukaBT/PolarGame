@@ -4,7 +4,9 @@ public class TerrainGenerator
 
     // Block ids, later these come from the item file
     public ushort airId = 0;
-    public ushort stoneId = 1;
+    public ushort grassId = 1;
+    public ushort stoneId = 2;
+    public ushort dirtId = 3;
 
     public TerrainGenerator(World world)
     {
@@ -24,6 +26,15 @@ public class TerrainGenerator
         }
     }
 
+    // Temporary flat terrain: air above radius, then 1 grass, 39 dirt, then stone
+    private ushort BlockAtRadius(double radius)
+    {
+        if (radius >= world.radius) return airId;
+        if (radius >= world.radius - 1) return grassId;
+        if (radius >= world.radius - 40) return dirtId;
+        return stoneId;
+    }
+
     // On a flat planet the terrain only depends on the row, so every column of the chunk is the same
     private void GeneratePolarChunk(Chunk chunk)
     {
@@ -35,13 +46,7 @@ public class TerrainGenerator
             // Radius of the center of the block
             double radius = band.innerRadius + startRow + y + 0.5;
 
-            ushort blockId = airId;
-            if (radius < world.radius)
-            {
-                blockId = stoneId;
-            }
-
-            Array.Fill(chunk.blockData, blockId, y * world.chunkSize, world.chunkSize);
+            Array.Fill(chunk.blockData, BlockAtRadius(radius), y * world.chunkSize, world.chunkSize);
         }
     }
 
@@ -67,9 +72,7 @@ public class TerrainGenerator
             return;
         }
 
-        // On a planet a core block only exists if its center is closer than coreRadius
-        double coreLimit = (double)world.coreRadius * world.coreRadius;
-        double stoneLimit = (double)world.radius * world.radius;
+        double coreLimit = world.coreRadius * world.coreRadius;
 
         for (int y = 0; y < world.chunkSize; y++)
         {
@@ -81,9 +84,9 @@ public class TerrainGenerator
                 double distance = centerX * centerX + centerY * centerY;
 
                 ushort blockId = airId;
-                if (distance < coreLimit && distance < stoneLimit)
+                if (distance < coreLimit)
                 {
-                    blockId = stoneId;
+                    blockId = BlockAtRadius(Math.Sqrt(distance));
                 }
 
                 chunk.blockData[y * world.chunkSize + x] = blockId;

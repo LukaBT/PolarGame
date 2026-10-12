@@ -3,32 +3,20 @@
 public class Chunk
 {
     private World world;
-
     // Chunk position
     public int band = -1; // Used only in polar chunks, if chunk is cartesian then band = -1
     public int chunkColumn;
     public int chunkRow;
-
     public ushort[] blockData;
+    public bool dirty = true;
 
-    // Polar chunk constructor
+
     public Chunk(World world, int band, int chunkColumn, int chunkRow)
     {
         this.world = world;
         blockData = new ushort[world.chunkSize * world.chunkSize];
 
         this.band = band;
-        this.chunkColumn = chunkColumn;
-        this.chunkRow = chunkRow;
-    }
-
-    // Cartesian chunk constructor
-    public Chunk(World world, int chunkColumn, int chunkRow)
-    {
-        this.world = world;
-        this.band = -1;
-        blockData = new ushort[world.chunkSize * world.chunkSize];
-
         this.chunkColumn = chunkColumn;
         this.chunkRow = chunkRow;
     }

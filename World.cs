@@ -135,7 +135,7 @@ public class World
     {
         Band band = bands[bandIndex];
 
-        if (blockRow >= 0 && blockRow < band.bandChunkHeight * chunkSize)
+        if (blockRow >= 0 && blockRow < band.bandChunkRows * chunkSize)
         {
             return band.GetBlock(blockColumn, blockRow);
         }
@@ -148,7 +148,7 @@ public class World
     {
         Band band = bands[bandIndex];
 
-        if (blockRow >= 0 && blockRow < band.bandChunkHeight * chunkSize)
+        if (blockRow >= 0 && blockRow < band.bandChunkRows * chunkSize)
         {
             return band.SetBlock(blockColumn, blockRow, blockId);
         }

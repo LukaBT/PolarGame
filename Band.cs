@@ -4,7 +4,7 @@ public class Band
     public int band;
 
     public int bandChunkColumns;
-    public int bandChunkHeight;
+    public int bandChunkRows;
 
     public int blockColumns;
 
@@ -12,8 +12,6 @@ public class Band
     public int outerRadius;
 
     public double delta;
-    public double sinDelta;
-    public double cosDelta;
 
     public double[] sinTable;
     public double[] cosTable;
@@ -25,7 +23,7 @@ public class Band
         this.world = world;
         this.band = band;
 
-        this.bandChunkHeight = world.coreRadiusChunks << band;
+        this.bandChunkRows = world.coreRadiusChunks << band;
         this.bandChunkColumns = world.startingColumnChunks << band;
 
         this.blockColumns = bandChunkColumns * world.chunkSize;
@@ -36,8 +34,6 @@ public class Band
 
         // Mesh calculation variables
         this.delta = Math.Tau / blockColumns;
-        this.sinDelta = Math.Sin(delta);
-        this.cosDelta = Math.Cos(delta);
  
         this.sinTable = new double[world.chunkSize + 1];
         this.cosTable = new double[world.chunkSize + 1];
@@ -108,7 +104,7 @@ public class Band
     // Returns null if row is outside of this band
     public Chunk? LoadChunk(int chunkColumn, int chunkRow)
     {
-        if (chunkRow < 0 || chunkRow >= bandChunkHeight)
+        if (chunkRow < 0 || chunkRow >= bandChunkRows)
         {
             return null;
         }
@@ -132,44 +128,54 @@ public class Band
     }
 
 
+    public bool GetChunkAddress(int blockColumn, int blockRow, out int chunkColumn, out int chunkRow, out int localX, out int localY)
+    {
+        chunkColumn = chunkRow = localX = localY = 0;
+
+        if (blockRow < 0 || blockRow >= bandChunkRows * world.chunkSize) return false;
+
+        chunkColumn = WrapBlockColumn(blockColumn) / world.chunkSize;
+        chunkRow = blockRow / world.chunkSize;
+
+        localX = ((blockColumn % world.chunkSize) + world.chunkSize) % world.chunkSize;
+        localY = ((blockRow % world.chunkSize) + world.chunkSize) % world.chunkSize;
+        return true;
+    }
+
     // Block row is counted from the bottom of this band
     public ushort GetBlock(int blockColumn, int blockRow)
     {
-        if (blockRow < 0 || blockRow >= bandChunkHeight * world.chunkSize)
+        if (!GetChunkAddress(blockColumn, blockRow, out int chunkColumn, out int chunkRow, out int localX, out int localY))
         {
             return 0;
         }
 
-        blockColumn = WrapBlockColumn(blockColumn);
-
-        Chunk? chunk = GetChunk(blockColumn / world.chunkSize, blockRow / world.chunkSize);
+        Chunk? chunk = GetChunk(chunkColumn, chunkRow);
 
         if (chunk == null)
         {
             return 0;
         }
 
-        return chunk.GetBlock(blockColumn % world.chunkSize, blockRow % world.chunkSize);
+        return chunk.GetBlock(localX, localY);
     }
 
     // Returns false if block could not be set
     public bool SetBlock(int blockColumn, int blockRow, ushort blockId)
     {
-        if (blockRow < 0 || blockRow >= bandChunkHeight * world.chunkSize)
+        if (!GetChunkAddress(blockColumn, blockRow, out int chunkColumn, out int chunkRow, out int localX, out int localY))
         {
             return false;
         }
 
-        blockColumn = WrapBlockColumn(blockColumn);
-
-        Chunk? chunk = GetChunk(blockColumn / world.chunkSize, blockRow / world.chunkSize);
+        Chunk? chunk = GetChunk(chunkColumn, chunkRow);
 
         if (chunk == null)
         {
             return false;
         }
 
-        chunk.SetBlock(blockColumn % world.chunkSize, blockRow % world.chunkSize, blockId);
+        chunk.SetBlock(localX, localY, blockId);
         return true;
     }
 }

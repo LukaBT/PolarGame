@@ -30,7 +30,7 @@ public class Core
 
     // Block (0,0) is the block right and above the center of the planet
     // Chunk (0,0) is centered on the center of the planet so everything is shifted by half a chunk
-    private void GetChunkAddress(int blockX, int blockY, out int chunkX, out int chunkY, out int localX, out int localY)
+    public void GetChunkAddress(int blockX, int blockY, out int chunkX, out int chunkY, out int localX, out int localY)
     {
         int shiftedX = blockX + world.chunkSize / 2;
         int shiftedY = blockY + world.chunkSize / 2;
@@ -64,7 +64,7 @@ public class Core
 
         if (!chunks.TryGetValue(key, out Chunk? chunk))
         {
-            chunk = new Chunk(world, chunkX, chunkY);
+            chunk = new Chunk(world, -1, chunkX, chunkY);
             chunks[key] = chunk;
         }
 
