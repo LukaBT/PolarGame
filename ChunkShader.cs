@@ -1,7 +1,8 @@
 using OpenTK.Graphics.OpenGL4;
 
 // Shader that draws one chunk: the fragment shader looks up the block of every pixel
-// in the chunk's R16UI texture, air (0) is discarded.
+// in the chunk's R16UI texture (unit 0), air (0) is discarded, and the block id is the layer
+// of the block texture array (unit 1) that gives the color.
 public class ChunkShader : IDisposable
 {
     private const string VertexSource = @"
@@ -32,34 +33,47 @@ void main()
     vGrid = vec2(gl_VertexID % uGridSize, gl_VertexID / uGridSize);
 }";
 
-    // PALETTE_SIZE is replaced with BlockPalette.Size
     private const string FragmentSource = @"
 #version 330 core
 in vec2 vGrid;
 
-uniform usampler2D uBlocks;
+uniform usampler2D uBlocks;          // unit 0: block ids of this chunk
+uniform sampler2DArray uTextures;    // unit 1: one layer per block id
 uniform int uChunkSize;
-uniform vec4 uColors[PALETTE_SIZE];
+uniform int uLayerCount;
 
 out vec4 outColor;
 
 void main()
 {
+    // How fast the grid position changes per pixel. This is taken from vGrid itself and not from the
+    // position inside the block, because that jumps at every block edge and would pick the wrong mip level there.
+    vec2 gridDx = dFdx(vGrid);
+    vec2 gridDy = dFdy(vGrid);
+
     ivec2 b = clamp(ivec2(floor(vGrid)), ivec2(0), ivec2(uChunkSize - 1));
     uint id = texelFetch(uBlocks, b, 0).r;
 
     if (id == 0u) discard;
 
-    outColor = uColors[min(id, uint(PALETTE_SIZE - 1))];
+    // 0 to 1 inside the block, ids without a layer use layer 0 (the missing texture)
+    vec2 uv = vGrid - vec2(b);
+    float layer = (id < uint(uLayerCount)) ? float(id) : 0.0;
+
+    vec4 color = textureGrad(uTextures, vec3(uv, layer), gridDx, gridDy);
+
+    // Fully transparent pixels (leaves, glass) show what is behind
+    if (color.a < 0.5) discard;
+
+    outColor = vec4(color.rgb, 1.0);
 }";
 
     private readonly ShaderProgram program;
     private readonly int uOrigin, uRot, uScale, uView;
 
-    public ChunkShader(int chunkSize, BlockPalette palette)
+    public ChunkShader(int chunkSize, int layerCount)
     {
-        string fragment = FragmentSource.Replace("PALETTE_SIZE", BlockPalette.Size.ToString());
-        program = new ShaderProgram(VertexSource, fragment, "Chunk");
+        program = new ShaderProgram(VertexSource, FragmentSource, "Chunk");
 
         uOrigin = program.GetUniform("uOrigin");
         uRot = program.GetUniform("uRot");
@@ -70,8 +84,9 @@ void main()
         program.Use();
         GL.Uniform1(program.GetUniform("uGridSize"), chunkSize + 1);
         GL.Uniform1(program.GetUniform("uChunkSize"), chunkSize);
-        GL.Uniform1(program.GetUniform("uBlocks"), 0);
-        GL.Uniform4(program.GetUniform("uColors"), BlockPalette.Size, palette.colors);
+        GL.Uniform1(program.GetUniform("uLayerCount"), layerCount);
+        GL.Uniform1(program.GetUniform("uBlocks"), 0);   // texture unit 0
+        GL.Uniform1(program.GetUniform("uTextures"), 1); // texture unit 1
     }
 
     public void Use()

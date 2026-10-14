@@ -1,6 +1,5 @@
 using OpenTK.Graphics.OpenGL4;
 
-// Compiles and links a vertex + fragment shader, shared by every renderer
 public class ShaderProgram : IDisposable
 {
     public int handle;

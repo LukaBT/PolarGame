@@ -14,6 +14,22 @@ public class Game : GameWindow
     private BlockEditor editor = null!;
     private DebugOverlay debug = null!;
 
+    // Shared by every world, so the game owns it and not a world or renderer
+    private BlockTextureArray blockTextures = null!;
+
+    // Number keys choose the block that is placed, by name from atlas_index.txt
+    private static readonly (Keys key, string block)[] hotbar =
+    {
+        (Keys.D1, "grass_top"),
+        (Keys.D2, "stone"),
+        (Keys.D3, "dirt"),
+        (Keys.D4, "oak_log"),
+        (Keys.D5, "oak_leaves"),
+        (Keys.D6, "ice"),   // there is no water texture in the atlas yet
+        (Keys.D7, "sand"),
+        (Keys.D8, "snow"),
+    };
+
     public Game()
         : base(GameWindowSettings.Default, new NativeWindowSettings
         {
@@ -31,16 +47,20 @@ public class Game : GameWindow
 
         GL.Viewport(0, 0, FramebufferSize.X, FramebufferSize.Y);
 
-        // type, radius, coreRadius, startingColumnChunks, chunkSize, bandCount
-        world = new World("Polar", 50000, 384, 28, 128, 15);
+        // Block definitions come first, worlds (terrain generation) use them
+        BlockRegistry.Initialize();
 
-        camera = new Camera(world, 0, 50000); // Planet surface at the top
+        // type, radius, coreRadius, startingColumnChunks, chunkSize, bandCount
+        world = new World("Polar", 73728, 384, 28, 128, 15);
+        camera = new Camera(world, 0, 73728); // Planet surface at the top
         camera.SetViewport(FramebufferSize.X, FramebufferSize.Y);
 
-        renderer = new Renderer(world);
+        blockTextures = new BlockTextureArray(BlockRegistry.Instance);
+        renderer = new Renderer(world, blockTextures);
         loader = new ChunkLoader(world);
         picker = new BlockPicker(world);
         editor = new BlockEditor(world, picker);
+        editor.selectedBlock = BlockRegistry.Instance.GetId("stone");
         debug = new DebugOverlay(world, renderer.overlay, renderer.font, picker, editor);
 
         loader.LoadCore(world.coreRadiusChunks);
@@ -83,11 +103,13 @@ public class Game : GameWindow
 
         camera.Update(args.Time);
 
-        if (KeyboardState.IsKeyPressed(Keys.D1)) editor.selectedBlock = 1; // grass
-        if (KeyboardState.IsKeyPressed(Keys.D2)) editor.selectedBlock = 2; // stone
-        if (KeyboardState.IsKeyPressed(Keys.D3)) editor.selectedBlock = 3; // dirt
+        foreach (var (key, block) in hotbar)
+        {
+            if (KeyboardState.IsKeyPressed(key)) editor.selectedBlock = BlockRegistry.Instance.GetId(block);
+        }
+
         if (KeyboardState.IsKeyPressed(Keys.C)) debug.showAllChunks = !debug.showAllChunks;
-        Title = "Planet - selected block " + editor.selectedBlock;
+        Title = "Planet - selected block " + BlockRegistry.Instance.GetName(editor.selectedBlock);
 
         loader.LoadAround(camera.x, camera.y);
 
@@ -125,6 +147,7 @@ public class Game : GameWindow
     protected override void OnUnload()
     {
         renderer.Dispose();
+        blockTextures.Dispose();
         base.OnUnload();
     }
 }

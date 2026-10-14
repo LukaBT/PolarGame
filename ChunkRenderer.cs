@@ -6,18 +6,19 @@ public class ChunkRenderer : IDisposable
     private readonly World world;
     private readonly int chunkSize;
 
-    private readonly BlockPalette palette;
+    private readonly BlockTextureArray blockTextures;
     private readonly ChunkShader shader;
     private readonly ChunkMeshBuffers meshBuffers;
     private readonly ChunkTextureCache textures;
 
-    public ChunkRenderer(World world)
+    // The block textures are shared by every world, so they are owned (and disposed) by the Game
+    public ChunkRenderer(World world, BlockTextureArray blockTextures)
     {
         this.world = world;
         chunkSize = world.chunkSize;
 
-        palette = new BlockPalette();
-        shader = new ChunkShader(chunkSize, palette);
+        this.blockTextures = blockTextures;
+        shader = new ChunkShader(chunkSize, blockTextures.layerCount);
         meshBuffers = new ChunkMeshBuffers(world);
         textures = new ChunkTextureCache(chunkSize);
     }
@@ -28,6 +29,12 @@ public class ChunkRenderer : IDisposable
 
         shader.Use();
         shader.SetCamera(camera);
+
+        // Unit 1 holds the block textures for the whole frame
+        GL.ActiveTexture(TextureUnit.Texture1);
+        blockTextures.Bind();
+
+        // Unit 0 is rebound for every chunk (its block ids) by ChunkTextureCache
         GL.ActiveTexture(TextureUnit.Texture0);
 
         foreach (Chunk chunk in world.core.chunks.Values)

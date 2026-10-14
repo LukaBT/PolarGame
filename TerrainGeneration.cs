@@ -2,15 +2,21 @@ public class TerrainGenerator
 {
     private World world;
 
-    // Block ids, later these come from the item file
+    // Block ids come from the block registry (atlas_index.txt)
     public ushort airId = 0;
-    public ushort grassId = 1;
-    public ushort stoneId = 2;
-    public ushort dirtId = 3;
+    public ushort grassId;
+    public ushort stoneId;
+    public ushort dirtId;
 
     public TerrainGenerator(World world)
     {
         this.world = world;
+
+        // The atlas only has the top of a grass block, which is what the surface layer uses
+        BlockRegistry blocks = BlockRegistry.Instance;
+        grassId = blocks.GetId("grass_top");
+        stoneId = blocks.GetId("stone");
+        dirtId = blocks.GetId("dirt");
     }
 
     // Fills every block of the chunk

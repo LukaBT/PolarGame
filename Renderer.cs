@@ -6,11 +6,12 @@ public class Renderer : IDisposable
     public Overlay overlay;
     public OverlayFont font;
     
-    public Renderer(World world)
+    // blockTextures is shared by every world and owned by the Game, so it is not disposed here
+    public Renderer(World world, BlockTextureArray blockTextures)
     {
         GL.ClearColor(0.05f, 0.07f, 0.15f, 1f); // Backgrond color
 
-        chunks = new ChunkRenderer(world); 
+        chunks = new ChunkRenderer(world, blockTextures); 
         overlay = new Overlay();
         font = new OverlayFont(overlay);
     }

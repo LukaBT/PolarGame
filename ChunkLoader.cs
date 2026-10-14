@@ -35,9 +35,9 @@ public class ChunkLoader
         int cc = blockColumn / size;
         int cr = blockRow / size;
 
-        for (int dc = -4; dc <= 4; dc++)
+        for (int dc = -8; dc <= 8; dc++)
         {
-            for (int dr = -3; dr <= 3; dr++)
+            for (int dr = -8; dr <= 8; dr++)
             {
                 int col = band.WrapChunkColumn(cc + dc);
                 int row = cr + dr;
